@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fishing Simulator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            margin: 0;
+            background-color: #1a1a1a;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-family: 'Press Start 2P', cursive;
+            color: #00e5ff;
+            text-shadow: 2px 2px #005a66;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        /* Área Principal do Jogo */
+        #game-container {
+            position: relative;
+            width: 800px;
+            max-width: 95vw;
+            height: 400px;
+            background: url('https://i0.wp.com/c.tenor.com/m6i-JH7ITx4AAAAC/mar-oceano.gif?resize=514%2C257&ssl=1') center/cover;
+            border: 6px solid #333;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.8);
+            margin-bottom: 20px;
+        }
+
+        /* Vara de Pesca */
+        #rod {
+            position: absolute;
+            right: -20px;
+            bottom: -20px;
+            height: 350px;
+            pointer-events: none;
+            z-index: 2;
+            filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.5));
+            transform: rotate(-10deg);
+            transition: transform 0.2s;
+        }
+
+        #rod.fishing {
+            transform: rotate(5deg);
+        }
+
+        /* Interface Sobreposta */
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            background: rgba(0,0,0,0.3);
+            transition: background 0.3s;
+        }
+
+        #action-btn {
+            padding: 15px 30px;
+            font-size: 20px;
+            font-family: 'Press Start 2P', cursive;
+            background-color: #ff9100;
+            color: white;
+            border: 4px solid #cc7400;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0px 5px 0px #995700;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        #action-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0px 0px 0px #995700;
+        }
+
+        #status-text {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0px #000;
+            color: #fff;
+        }
+
+        /* Minigame de Pesca */
+        #minigame-container {
+            display: none;
+            width: 300px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 4px solid #555;
+            border-radius: 8px;
+            padding: 10px;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .bar-bg {
+            width: 100%;
+            height: 30px;
+            background: #222;
+            border: 2px solid #000;
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        /* Barra de Captura (o peixe em si) */
+        #catch-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 80px;
+            background: rgba(0, 255, 0, 0.4);
+            border: 2px solid #00ff00;
+            border-radius: 15px;
+            box-sizing: border-box;
+        }
+
+        #fish-icon {
+            position: absolute;
+            left: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            background: #ff0055;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px #ff0055;
+        }
+
+        /* Barra de Progresso Geral */
+        #progress-fill {
+            height: 100%;
+            width: 25%;
+            background: linear-gradient(90deg, #ff0000, #ffaa00, #00ff00);
+            transition: width 0.1s linear;
+        }
+
+        #instructions {
+            font-size: 12px;
+            text-align: center;
+            color: #aaa;
+        }
+
+        /* Mochila de Peixes */
+        .backpack-container {
+            width: 800px;
+            max-width: 95vw;
+            background: #2b2b2b;
+            border: 4px solid #444;
+            border-radius: 10px;
+            padding: 20px;
+            box-sizing: border-box;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 16px;
+            margin-top: 0;
+            color: #ffb700;
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+        }
+
+        #backpack-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .fish-slot {
+            background: #1a1a1a;
+            border: 3px solid #555;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .fish-slot:hover {
+            transform: scale(1.05);
+        }
+
+        .fish-slot img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin-bottom: 10px;
+        }
+
+        .fish-name { font-weight: bold; font-size: 14px; margin-bottom: 5px; }
+        .fish-rarity { font-size: 12px; font-weight: bold; }
+
+        /* Cores das Raridades */
+        .rarity-comum { color: #b3b3b3; border-color: #b3b3b3 !important; }
+        .rarity-raro { color: #00aaff; border-color: #00aaff !important; text-shadow: 0 0 5px rgba(0, 170, 255, 0.5); }
+        .rarity-epico { color: #00ff00; border-color: #00ff00 !important; text-shadow: 0 0 8px rgba(0, 255, 0, 0.8); }
+
+        /* Filtro especial para fazer o peixe raro ficar azul reaproveitando a imagem do comum */
+        .filter-raro {
+            filter: sepia(1) hue-rotate(180deg) saturate(500%) brightness(0.8);
+        }
+        
+        #popup {
+            display: none;
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            border: 4px solid #fff;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            z-index: 10;
+            animation: pop 0.3s ease-out;
+        }
+
+        #popup img { width: 100px; height: 100px; object-fit: contain; margin: 10px 0; }
+        
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>FISHING SIMULATOR</h1>
+
+    <div id="game-container">
+        <!-- Background fornecido (no CSS) -->
+        
+        <!-- Vara de Pesca -->
+        <img id="rod" src="https://raw.githubusercontent.com/sombrassinistras-max/JOGO1/main/Vara.png" alt="Vara de Pesca">
+        
+        <!-- UI do Jogo -->
+        <div id="ui-layer">
+            <div id="status-text"></div>
+            <button id="action-btn">Lançar Linha</button>
+            
+            <div id="popup">
+                <div style="font-family:'Press Start 2P'; font-size:14px; color:white;">Você pescou um:</div>
+                <img id="popup-img" src="">
+                <div id="popup-name" class="fish-name" style="font-size: 20px;"></div>
+                <div id="popup-rarity" class="fish-rarity" style="font-size: 16px;"></div>
+                <br>
+                <button onclick="resetGame()" style="padding: 10px; cursor:pointer;">Continuar</button>
+            </div>
+
+            <div id="minigame-container">
+                <div id="instructions">Segure o MOUSE ou ESPAÇO para mover a zona verde. Mantenha o ponto vermelho dentro dela!</div>
+                
+                <!-- Barra de Tensão/Captura -->
+                <div class="bar-bg">
+                    <div id="catch-area"></div>
+                    <div id="fish-icon"></div>
+                </div>
+
+                <!-- Barra de Progresso Final -->
+                <div class="bar-bg" style="height: 15px;">
+                    <div id="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="backpack-container">
+        <h2>Mochila de Peixes (<span id="fish-count">0</span>)</h2>
+        <div id="backpack-grid">
+            <!-- Os peixes pescados aparecerão aqui -->
+        </div>
+    </div>
+
+    <script>
+        // Imagens Fornecidas (Convertidas para Raw do GitHub)
+        const imgComum = "https://raw.githubusercontent.com/sombrassinistras-max/JOGO1/main/Commum.png";
+        const imgRadioativo = "https://raw.githubusercontent.com/sombrassinistras-max/JOGO1/main/Peixe%20Radioativo.png";
+
+        // Banco de Dados dos Peixes
+        const fishDatabase =[
+            { id: 'peixe_comum', name: 'Peixe Comum', rarity: 'Comum', img: imgComum, classRarity: 'rarity-comum', cssClass: '', difficulty: 1, chance: 60 },
+            { id: 'peixe_raro', name: 'Peixe Raro', rarity: 'Raro', img: imgComum, classRarity: 'rarity-raro', cssClass: 'filter-raro', difficulty: 2, chance: 30 },
+            { id: 'peixe_radioativo', name: 'Peixe Radioativo', rarity: 'Épico', img: imgRadioativo, classRarity: 'rarity-epico', cssClass: '', difficulty: 3, chance: 10 }
+        ];
+
+        // Variáveis de Estado
+        let gameState = 'idle'; // idle, waiting, hooking, minigame
+        let waitTimeout;
+        let hookTimeout;
+        let currentFish = null;
+        let backpack =[];
+
+        // Variáveis do Minigame
+        let fishPos = 0;
+        let fishTarget = 0;
+        let catchPos = 0;
+        let catchVelocity = 0;
+        let progress = 25;
+        let isPressing = false;
+        let minigameLoopId;
+
+        // Elementos do DOM
+        const uiLayer = document.getElementById('ui-layer');
+        const statusText = document.getElementById('status-text');
+        const actionBtn = document.getElementById('action-btn');
+        const minigameContainer = document.getElementById('minigame-container');
+        const catchArea = document.getElementById('catch-area');
+        const fishIcon = document.getElementById('fish-icon');
+        const progressFill = document.getElementById('progress-fill');
+        const rod = document.getElementById('rod');
+        const backpackGrid = document.getElementById('backpack-grid');
+        const fishCount = document.getElementById('fish-count');
+        const popup = document.getElementById('popup');
+
+        // Controles do Minigame (Mouse, Touch e Teclado)
+        function onPress() { if(gameState === 'minigame') isPressing = true; }
+        function onRelease() { isPressing = false; }
+        
+        window.addEventListener('mousedown', onPress);
+        window.addEventListener('mouseup', onRelease);
+        window.addEventListener('touchstart', onPress);
+        window.addEventListener('touchend', onRelease);
+        window.addEventListener('keydown', (e) => { if(e.code === 'Space') onPress(); });
+        window.addEventListener('keyup', (e) => { if(e.code === 'Space') onRelease(); });
+
+        actionBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (gameState === 'idle') startFishing();
+            else if (gameState === 'hooking') hookFish();
+        });
+
+        function getRandomFish() {
+            let rand = Math.random() * 100;
+            let sum = 0;
+            for (let f of fishDatabase) {
+                sum += f.chance;
+                if (rand <= sum) return f;
+            }
+            return fishDatabase[0];
+        }
+
+        function startFishing() {
+            gameState = 'waiting';
+            actionBtn.style.display = 'none';
+            statusText.innerText = "Aguardando...";
+            uiLayer.style.background = "transparent";
+            rod.classList.add('fishing');
+
+            let waitTime = Math.floor(Math.random() * 3000) + 2000; // 2 a 5 segundos
+            waitTimeout = setTimeout(() => {
+                gameState = 'hooking';
+                statusText.innerText = "FISGOU!";
+                statusText.style.color = "#ff0000";
+                actionBtn.innerText = "PUXAR!";
+                actionBtn.style.display = 'block';
+                actionBtn.style.backgroundColor = "#ff0000";
+                actionBtn.style.borderColor = "#990000";
+                
+                // Tem apenas 1.5s para puxar
+                hookTimeout = setTimeout(() => {
+                    if (gameState === 'hooking') {
+                        escapedFish("O peixe fugiu...");
+                    }
+                }, 1500);
+
+            }, waitTime);
+        }
+
+        function hookFish() {
+            clearTimeout(hookTimeout);
+            gameState = 'minigame';
+            currentFish = getRandomFish();
+            
+            actionBtn.style.display = 'none';
+            statusText.innerText = "";
+            minigameContainer.style.display = 'flex';
+            uiLayer.style.background = "rgba(0,0,0,0.5)";
+
+            // Reset Minigame Stats
+            progress = 25;
+            catchPos = 0;
+            catchVelocity = 0;
+            fishPos = 140;
+            fishTarget = 140;
+            
+            updateMinigame();
+        }
+
+        function updateMinigame() {
+            if (gameState !== 'minigame') return;
+
+            // Movimento do Peixe (Baseado na dificuldade)
+            if (Math.random() < 0.05 + (currentFish.difficulty * 0.02)) {
+                // Peixe muda de direção
+                fishTarget = Math.random() * 260; // 300px (container) - 40px (margem)
+            }
+            
+            let speed = currentFish.difficulty * 1.5;
+            if (fishPos < fishTarget) fishPos += speed;
+            if (fishPos > fishTarget) fishPos -= speed;
+
+            // Movimento da Barra de Captura do Jogador
+            if (isPressing) {
+                catchVelocity += 0.8; // Acelera pra direita
+            } else {
+                catchVelocity -= 0.8; // Cai pra esquerda
+            }
+            
+            // Limitar velocidade
+            catchVelocity = Math.max(-5, Math.min(5, catchVelocity));
+            catchPos += catchVelocity;
+
+            // Limitar Posição da Barra (Container = 300px, Barra = 80px -> Max 220)
+            if (catchPos < 0) { catchPos = 0; catchVelocity = 0; }
+            if (catchPos > 216) { catchPos = 216; catchVelocity = 0; }
+
+            // Atualizar UI do Minigame
+            catchArea.style.left = catchPos + 'px';
+            fishIcon.style.left = fishPos + 'px';
+
+            // Lógica de Captura: O peixe está dentro da barra de captura (80px de largura)?
+            let fishCenter = fishPos + 10;
+            let catchStart = catchPos;
+            let catchEnd = catchPos + 80;
+
+            if (fishCenter >= catchStart && fishCenter <= catchEnd) {
+                progress += 0.2; // Ganhando peixe
+                catchArea.style.backgroundColor = "rgba(0, 255, 0, 0.4)";
+                catchArea.style.borderColor = "#00ff00";
+            } else {
+                progress -= 0.15; // Perdendo peixe
+                catchArea.style.backgroundColor = "rgba(255, 0, 0, 0.4)";
+                catchArea.style.borderColor = "#ff0000";
+            }
+
+            // Limitar progresso
+            progress = Math.max(0, Math.min(100, progress));
+            progressFill.style.width = progress + '%';
+
+            // Condição de Vitória / Derrota
+            if (progress >= 100) {
+                catchSuccess();
+                return;
+            } else if (progress <= 0) {
+                escapedFish("A linha arrebentou!");
+                return;
+            }
+
+            minigameLoopId = requestAnimationFrame(updateMinigame);
+        }
+
+        function catchSuccess() {
+            gameState = 'caught';
+            cancelAnimationFrame(minigameLoopId);
+            minigameContainer.style.display = 'none';
+            rod.classList.remove('fishing');
+            
+            // Adicionar à Mochila
+            backpack.push(currentFish);
+            updateBackpack();
+
+            // Mostrar Popup
+            document.getElementById('popup-img').src = currentFish.img;
+            document.getElementById('popup-img').className = currentFish.cssClass;
+            document.getElementById('popup-name').innerText = currentFish.name;
+            document.getElementById('popup-rarity').innerText = currentFish.rarity;
+            document.getElementById('popup-rarity').className = 'fish-rarity ' + currentFish.classRarity;
+            
+            popup.style.display = 'block';
+        }
+
+        function escapedFish(msg) {
+            gameState = 'idle';
+            cancelAnimationFrame(minigameLoopId);
+            minigameContainer.style.display = 'none';
+            rod.classList.remove('fishing');
+            
+            statusText.innerText = msg;
+            statusText.style.color = "#ffaa00";
+            
+            setTimeout(() => {
+                resetGame();
+            }, 2000);
+        }
+
+        function resetGame() {
+            gameState = 'idle';
+            popup.style.display = 'none';
+            statusText.innerText = "";
+            actionBtn.innerText = "Lançar Linha";
+            actionBtn.style.display = 'block';
+            actionBtn.style.backgroundColor = "#ff9100";
+            actionBtn.style.borderColor = "#cc7400";
+            uiLayer.style.background = "transparent";
+            isPressing = false;
+        }
+
+        function updateBackpack() {
+            fishCount.innerText = backpack.length;
+            backpackGrid.innerHTML = '';
+            
+            // Reverter array para mostrar os mais recentes primeiro
+            let reversed = [...backpack].reverse();
+
+            reversed.forEach(fish => {
+                let slot = document.createElement('div');
+                slot.className = 'fish-slot ' + fish.classRarity;
+                
+                slot.innerHTML = `
+                    <img src="${fish.img}" class="${fish.cssClass}">
+                    <div class="fish-name">${fish.name}</div>
+                    <div class="fish-rarity ${fish.classRarity}">${fish.rarity}</div>
+                `;
+                backpackGrid.appendChild(slot);
+            });
+        }
+    </script>
+</body>
+</html>
